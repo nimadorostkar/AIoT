@@ -406,12 +406,29 @@ sudo chown -R $USER:$USER .
 - Enable SSL/TLS in production nginx configuration
 - Configure firewall rules for production deployment
 
-## Docs
-See `docs/`:
-- `docs/IoT_System_Blueprint.md` – architecture & protocols
-- `docs/software_guide/README.md` – local run, endpoints, MQTT topics
-- `docs/deployment/deployment_guide.md` – docker/local deployment
-- `docs/hardware_guide/firmware_guide.md` – provisioning & topics
+## 📚 Documentation
+
+### Getting Started
+- **[Device Testing Guide](docs/testing/README.md)** – Complete testing suite for devices, sensors, and gateways
+- **[Device Examples](docs/testing/device_examples.md)** – Real-world IoT device configurations and commands
+
+### System Documentation
+- **[IoT System Blueprint](docs/IoT_System_Blueprint.md)** – Architecture & protocols overview
+- **[Software Guide](docs/software_guide/README.md)** – Local development, API endpoints, MQTT topics
+- **[Deployment Guide](docs/deployment/deployment_guide.md)** – Docker and production deployment
+- **[Hardware Guide](docs/hardware_guide/firmware_guide.md)** – Device provisioning & topics
+
+### Quick Testing
+```bash
+# Quick functionality test
+./docs/testing/scripts/quick_test.sh
+
+# Full device testing suite
+./docs/testing/scripts/test_iot_devices.sh
+
+# Simulate IoT devices
+./docs/testing/scripts/mqtt_simulator.sh all
+```
 
 ## Notes
 - Admin static 404 warnings are expected when serving via Daphne in dev; they don’t affect API/UI.

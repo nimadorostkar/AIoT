@@ -73,7 +73,7 @@ services:
       MQTT_BROKER_PORT: 1883
       ALLOWED_HOSTS: "*"
       DJANGO_DEBUG: 1
-      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000,http://web:5173
+      CORS_ALLOWED_ORIGINS: http://localhost:5173,http://localhost:3000,http://web:5173,http://0.0.0.0:5173
       DJANGO_SUPERUSER_EMAIL: admin@example.com
       DJANGO_SUPERUSER_PASSWORD: admin123
       CELERY_BROKER_URL: redis://redis:6379/1
@@ -111,11 +111,14 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     volumes:
       - ./backend:/app
-    command: celery -A core worker -l info
+    command: sh -c "python -m celery -A core worker -l info"
     depends_on:
-      - db
-      - redis
-      - api
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
     restart: unless-stopped
     networks:
       - iot_net

@@ -8,9 +8,8 @@ echo "🔍 Checking Docker services health..."
 # Function to check service health
 check_service() {
     local service=$1
-    local expected_state=$2
     
-    local state=$(docker-compose ps --services --filter status=running | grep "^${service}$" || echo "")
+    local state=$(docker compose ps --format "{{.Service}}" --filter status=running | grep "^${service}$" || echo "")
     
     if [ "$state" = "$service" ]; then
         echo "✅ $service: Running"
@@ -41,18 +40,18 @@ check_endpoint() {
 # Check Docker services
 echo ""
 echo "📦 Docker Services:"
-check_service "iot_db"
-check_service "iot_redis"
-check_service "iot_mqtt"
-check_service "iot_api"
-check_service "iot_web"
+check_service "db"
+check_service "redis"
+check_service "mqtt"
+check_service "api"
+check_service "web"
+check_service "celery"
 
 # Check endpoints
 echo ""
 echo "🌐 Endpoint Health:"
 check_endpoint "Frontend" "http://localhost:5173"
-check_endpoint "API Health" "http://localhost:8000/api/health/" 404  # Adjust based on your health endpoint
-check_endpoint "Admin Panel" "http://localhost:8000/admin/"
+check_endpoint "Admin Panel" "http://localhost:8000/admin/" 302  # 302 is expected (redirect to login)
 check_endpoint "API Docs" "http://localhost:8000/api/docs/"
 
 # Check MQTT

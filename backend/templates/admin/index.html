@@ -1,0 +1,14 @@
+{% extends "admin/index.html" %}
+{% load i18n static %}
+
+{% block content %}
+<div style="margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">
+    <h2 style="margin: 0 0 10px 0; color: white;">🏠 IoT Smart System Dashboard</h2>
+    <p style="margin: 0 0 15px 0; opacity: 0.9;">Monitor your gateways, devices, and sensor data in real-time</p>
+    <a href="{% url 'iot_dashboard' %}" style="background: rgba(255,255,255,0.2); color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; border: 1px solid rgba(255,255,255,0.3);">
+        📊 View IoT Dashboard
+    </a>
+</div>
+
+{{ block.super }}
+{% endblock %}

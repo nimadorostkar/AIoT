@@ -2,6 +2,61 @@
 
 End‑to‑end, production‑ready IoT platform for real‑time sensing, control, and live video. This project includes a Dockerized stack and a local dev setup (virtualenv + Vite). Architecture and protocol choices follow best practices similar to the referenced blueprint [IoT_Smart_System](https://github.com/nimadorostkar/IoT_Smart_System).
 
+## 🏗️ System Architecture
+
+```mermaid
+graph TB
+    subgraph "Docker Stack"
+        subgraph "Frontend Layer"
+            WEB["web (React + Vite)<br/>Port: 5173"]
+            NGINX["nginx (Reverse Proxy)<br/>Port: 80, 443<br/>(Production Only)"]
+        end
+        
+        subgraph "Backend Layer"
+            API["api (Django + DRF)<br/>Port: 8000"]
+            CELERY["celery (Background Tasks)"]
+        end
+        
+        subgraph "Data Layer"
+            DB["db (PostgreSQL)<br/>Port: 5432"]
+            REDIS["redis (Cache + Sessions)<br/>Port: 6379"]
+            MQTT["mqtt (Mosquitto)<br/>Port: 1883, 9001"]
+        end
+    end
+    
+    subgraph "External"
+        DEVICES["IoT Devices"]
+        USERS["Users"]
+    end
+    
+    %% Connections
+    USERS --> WEB
+    USERS --> NGINX
+    NGINX --> WEB
+    NGINX --> API
+    WEB --> API
+    API --> DB
+    API --> REDIS
+    API --> MQTT
+    CELERY --> DB
+    CELERY --> REDIS
+    DEVICES --> MQTT
+    
+    %% Health checks
+    WEB -.->|Health Check| WEB
+    API -.->|Health Check| API
+    DB -.->|Health Check| DB
+    REDIS -.->|Health Check| REDIS
+    MQTT -.->|Health Check| MQTT
+```
+
+The architecture showcases a complete containerized IoT platform with:
+- **Frontend Layer**: React web application with optional nginx reverse proxy
+- **Backend Layer**: Django REST API with Celery for background processing
+- **Data Layer**: PostgreSQL database, Redis cache, and MQTT broker
+- **Health Monitoring**: Built-in health checks for all services
+- **External Integration**: IoT device connectivity and user access points
+
 ## 🗂️ Folder Structure
 
 ```

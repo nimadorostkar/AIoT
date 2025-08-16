@@ -1,4 +1,7 @@
-# IoT Smart System (Web App + Django Backend)
+# The artificial intelligence of things (AIoT)
+
+The artificial intelligence of things (AIoT) is the combination of AI technologies and the internet of things (IoT) infrastructure. 
+AIoT's goal is to create more efficient IoT operations, improve human-machine interactions, and enhance data management and analytics.
 
 End‑to‑end, production‑ready IoT platform for real‑time sensing, control, and live video. This project includes a Dockerized stack and a local dev setup (virtualenv + Vite). Architecture and protocol choices follow best practices similar to the referenced blueprint [IoT_Smart_System](https://github.com/nimadorostkar/IoT_Smart_System).
 

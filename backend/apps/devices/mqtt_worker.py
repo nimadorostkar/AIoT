@@ -19,12 +19,26 @@ class MqttBridge:
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"api-{os.getpid()}")
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
+        self.client.on_disconnect = self.on_disconnect
+        self._connected = False
+        self._thread = None
 
     def start(self) -> None:
-        self.client.connect(self.host, self.port, 60)
-        thread = threading.Thread(target=self.client.loop_forever, daemon=True)
-        thread.start()
-        self._connected = True
+        try:
+            print(f"MQTT Bridge: Connecting to {self.host}:{self.port}")
+            self.client.connect(self.host, self.port, 60)
+            if self._thread is None or not self._thread.is_alive():
+                self._thread = threading.Thread(target=self.client.loop_forever, daemon=True)
+                self._thread.start()
+            self._connected = True
+            print("MQTT Bridge: Started successfully")
+        except Exception as e:
+            print(f"MQTT Bridge: Failed to start - {e}")
+            self._connected = False
+
+    def on_disconnect(self, client, userdata, reason_code):
+        print(f"MQTT Bridge: Disconnected with reason code {reason_code}")
+        self._connected = False
 
     def publish(self, topic: str, payload: dict, qos: int = 1) -> None:
         try:
@@ -33,26 +47,34 @@ class MqttBridge:
             pass
 
     def on_connect(self, client: mqtt.Client, userdata: Any, flags: Dict[str, Any], reason_code: int, properties=None):
+        print(f"MQTT Bridge: Connected with result code {reason_code}")
         client.subscribe("devices/+/data")
         client.subscribe("devices/+/heartbeat")
+        print("MQTT Bridge: Subscribed to devices/+/data and devices/+/heartbeat")
+        self._connected = True
 
     def on_message(self, client: mqtt.Client, userdata: Any, msg: mqtt.MQTTMessage):
+        print(f"MQTT Bridge: Received message on {msg.topic}")
         topic_parts = msg.topic.split("/")
         if len(topic_parts) < 3:
+            print(f"MQTT Bridge: Invalid topic format: {msg.topic}")
             return
         _, device_id, event_type = topic_parts[:3]
 
         try:
             payload = json.loads(msg.payload.decode("utf-8")) if msg.payload else {}
-        except Exception:
+        except Exception as e:
+            print(f"MQTT Bridge: Failed to parse JSON: {e}")
             payload = {"raw": msg.payload.decode("utf-8", errors="ignore")}
 
         if event_type == "heartbeat":
+            print(f"MQTT Bridge: Processing heartbeat for {device_id}")
             device = Device.objects.filter(device_id=device_id).select_related("gateway").first()
             if device:
                 device.is_online = True
                 device.save(update_fields=["is_online"])
                 Gateway.objects.filter(id=device.gateway_id).update(last_seen=timezone.now())
+                print(f"MQTT Bridge: Device {device_id} marked as online")
             else:
                 # Auto-create device if gateway_id provided
                 gwid = payload.get("gateway_id")

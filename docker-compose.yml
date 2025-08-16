@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: iot_api
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/iot
+      - REDIS_URL=redis://redis:6379/0
+      - MQTT_BROKER_URL=mqtt
+      - MQTT_BROKER_PORT=1883
+      - ALLOWED_HOSTS=*
+      - DJANGO_DEBUG=1
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SUPERUSER_PASSWORD=admin123
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+      - mqtt
+    ports:
+      - "8000:8000"
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && python manage.py ensure_superuser && daphne -b 0.0.0.0 -p 8000 core.asgi:application"
+
+  db:
+    image: postgres:16-alpine
+    container_name: iot_db
+    environment:
+      - POSTGRES_DB=iot
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: iot_redis
+    ports:
+      - "6379:6379"
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: iot_mqtt
+    volumes:
+      - ./docker/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: iot_web
+    environment:
+      - VITE_API_BASE=http://localhost:8000
+      - VITE_WS_BASE=ws://localhost:8000
+    volumes:
+      - ./frontend:/usr/src/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    depends_on:
+      - api
+
+volumes:
+  db_data:
+
+networks:
+  default:
+    name: iot_net
+

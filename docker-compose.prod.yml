@@ -1,0 +1,18 @@
+services:
+  # Override for production
+  api:
+    environment:
+      DJANGO_DEBUG: 0
+      DJANGO_SETTINGS_MODULE: core.settings.production
+    command: sh -c "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+
+  web:
+    build:
+      target: production
+    ports: []  # Remove direct port exposure
+
+  nginx:
+    profiles: []  # Enable nginx in production
+
+# Environment file for production
+# Use: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up

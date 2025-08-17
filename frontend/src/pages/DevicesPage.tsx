@@ -26,26 +26,72 @@ export default function DevicesPage() {
   const [deviceType, setDeviceType] = useState('sensor')
   const [deviceModel, setDeviceModel] = useState('')
   const [latestTelemetry, setLatestTelemetry] = useState<{ [deviceId: number]: Telemetry }>({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
 
   useEffect(() => {
     const access = localStorage.getItem('access')
-    if (!access) return
-    api.get(`/devices/devices/`)
-      .then(res => setDevices(res.data)).catch(() => {})
+    if (!access) {
+      setError('Not authenticated')
+      setLoading(false)
+      return
+    }
     
-    // Load latest telemetry for each device
-    api.get(`/devices/telemetry/`)
-      .then(res => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        // Load devices
+        const devicesResponse = await api.get(`/devices/devices/`)
+        setDevices(devicesResponse.data || [])
+        
+        // Load latest telemetry for each device
+        const telemetryResponse = await api.get(`/devices/telemetry/`)
         const telemetryByDevice: { [deviceId: number]: Telemetry } = {}
-        res.data.forEach((item: Telemetry) => {
-          if (!telemetryByDevice[item.device] || new Date(item.timestamp) > new Date(telemetryByDevice[item.device].timestamp)) {
-            telemetryByDevice[item.device] = item
-          }
-        })
+        
+        if (telemetryResponse.data && Array.isArray(telemetryResponse.data)) {
+          telemetryResponse.data.forEach((item: Telemetry) => {
+            if (item && item.device && (!telemetryByDevice[item.device] || 
+                new Date(item.timestamp) > new Date(telemetryByDevice[item.device].timestamp))) {
+              telemetryByDevice[item.device] = item
+            }
+          })
+        }
+        
         setLatestTelemetry(telemetryByDevice)
-      }).catch(() => {})
+      } catch (error) {
+        console.error('Error loading devices:', error)
+        setError('Failed to load devices. Please try refreshing the page.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    loadData()
   }, [])
+  
+  if (loading) {
+    return (
+      <Stack spacing={3} alignItems="center" sx={{ mt: 4 }}>
+        <Typography variant="h5">Loading Devices...</Typography>
+        <LinearProgress sx={{ width: '100%' }} />
+      </Stack>
+    )
+  }
+  
+  if (error) {
+    return (
+      <Stack spacing={3} alignItems="center" sx={{ mt: 4 }}>
+        <Typography variant="h5" color="error">Error</Typography>
+        <Typography variant="body1">{error}</Typography>
+        <Button variant="contained" onClick={() => window.location.reload()}>
+          Refresh Page
+        </Button>
+      </Stack>
+    )
+  }
 
   return (
     <Stack spacing={3}>
@@ -90,38 +136,45 @@ export default function DevicesPage() {
                     </Stack>
 
                     {/* Real-time sensor data */}
-                    {telemetry && (
+                    {telemetry && telemetry.payload && (
                       <Box>
                         <Typography variant="body2" fontWeight="medium">Latest Readings:</Typography>
                         <Stack spacing={1} sx={{ mt: 1 }}>
-                          {Object.entries(telemetry.payload).map(([key, value]) => {
-                            if (key === 'gateway_id') return null
+                          {Object.entries(telemetry.payload || {}).map(([key, value]) => {
+                            if (key === 'gateway_id' || key === 'timestamp') return null
                             
-                            return (
-                              <Box key={key}>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                                  <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                                    {key}:
-                                  </Typography>
-                                  <Typography variant="body2" fontWeight="medium">
-                                    {typeof value === 'number' ? value.toFixed(1) : value}
-                                    {key === 'temperature' && '°C'}
-                                    {key === 'humidity' && '%'}
-                                  </Typography>
-                                </Stack>
-                                {/* Progress bar for percentage values */}
-                                {(key === 'humidity' && typeof value === 'number') && (
-                                  <LinearProgress 
-                                    variant="determinate" 
-                                    value={value} 
-                                    sx={{ mt: 0.5, height: 4 }}
-                                  />
-                                )}
-                              </Box>
-                            )
+                            try {
+                              return (
+                                <Box key={key}>
+                                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                                      {key.replace('_', ' ')}:
+                                    </Typography>
+                                    <Typography variant="body2" fontWeight="medium">
+                                      {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                                      {key === 'temperature' && '°C'}
+                                      {key === 'humidity' && '%'}
+                                      {key === 'battery' && '%'}
+                                      {key === 'brightness' && '%'}
+                                    </Typography>
+                                  </Stack>
+                                  {/* Progress bar for percentage values */}
+                                  {(key === 'humidity' || key === 'battery' || key === 'brightness') && typeof value === 'number' && (
+                                    <LinearProgress 
+                                      variant="determinate" 
+                                      value={Math.min(Math.max(value, 0), 100)} 
+                                      sx={{ mt: 0.5, height: 4 }}
+                                    />
+                                  )}
+                                </Box>
+                              )
+                            } catch (error) {
+                              console.error('Error rendering telemetry data:', error, key, value)
+                              return null
+                            }
                           })}
                           <Typography variant="caption" color="text.secondary">
-                            Updated: {new Date(telemetry.timestamp).toLocaleString()}
+                            Updated: {telemetry.timestamp ? new Date(telemetry.timestamp).toLocaleString() : 'Unknown'}
                           </Typography>
                         </Stack>
                       </Box>

@@ -1,6 +1,7 @@
-import { Box, Card, CardContent, Grid, Stack, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, LinearProgress } from '@mui/material'
+import { Box, Card, CardContent, Grid, Stack, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, LinearProgress, Button, IconButton } from '@mui/material'
+import { ArrowBack } from '@mui/icons-material'
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 
 type Device = {
@@ -22,31 +23,53 @@ type Telemetry = {
 
 export default function SensorHistoryPage() {
   const { deviceId } = useParams<{ deviceId: string }>()
+  const navigate = useNavigate()
   const [device, setDevice] = useState<Device | null>(null)
   const [telemetryHistory, setTelemetryHistory] = useState<Telemetry[]>([])
   const [latestReading, setLatestReading] = useState<Telemetry | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadDeviceData = async () => {
       try {
+        setLoading(true)
+        setError(null)
+        
         const access = localStorage.getItem('access')
-        if (!access || !deviceId) return
+        if (!access) {
+          setError('Not authenticated')
+          setLoading(false)
+          return
+        }
+        
+        if (!deviceId) {
+          setError('No device ID provided')
+          setLoading(false)
+          return
+        }
+
+        console.log('Loading device data for ID:', deviceId)
 
         // Load device details
         const deviceResponse = await api.get(`/devices/devices/${deviceId}/`)
+        console.log('Device response:', deviceResponse.data)
         setDevice(deviceResponse.data)
 
         // Load telemetry history (last 50 records)
         const telemetryResponse = await api.get(`/devices/telemetry/?device=${deviceId}&limit=50`)
-        const telemetryData = telemetryResponse.data.sort((a: Telemetry, b: Telemetry) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
+        console.log('Telemetry response:', telemetryResponse.data)
+        
+        const telemetryData = Array.isArray(telemetryResponse.data) ? 
+          telemetryResponse.data.sort((a: Telemetry, b: Telemetry) => 
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          ) : []
         
         setTelemetryHistory(telemetryData)
         setLatestReading(telemetryData[0] || null)
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading device data:', error)
+        setError(error.response?.data?.detail || error.message || 'Failed to load device data')
       } finally {
         setLoading(false)
       }
@@ -57,17 +80,29 @@ export default function SensorHistoryPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <Typography>Loading sensor data...</Typography>
-      </Box>
+      <Stack spacing={2} alignItems="center" sx={{ mt: 4 }}>
+        <Typography variant="h6">Loading sensor data...</Typography>
+        <LinearProgress sx={{ width: '50%' }} />
+      </Stack>
+    )
+  }
+
+  if (error) {
+    return (
+      <Stack spacing={2} alignItems="center" sx={{ mt: 4 }}>
+        <Typography variant="h6" color="error">Error</Typography>
+        <Typography>{error}</Typography>
+        <Typography variant="body2">Device ID: {deviceId}</Typography>
+      </Stack>
     )
   }
 
   if (!device) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <Typography>Device not found</Typography>
-      </Box>
+      <Stack spacing={2} alignItems="center" sx={{ mt: 4 }}>
+        <Typography variant="h6">Device not found</Typography>
+        <Typography>Device ID: {deviceId}</Typography>
+      </Stack>
     )
   }
 
@@ -122,6 +157,17 @@ export default function SensorHistoryPage() {
 
   return (
     <Stack spacing={3}>
+      {/* Back Button and Device Header */}
+      <Stack direction="row" spacing={2} alignItems="center">
+        <IconButton 
+          onClick={() => navigate('/devices')}
+          sx={{ border: 1, borderColor: 'divider' }}
+        >
+          <ArrowBack />
+        </IconButton>
+        <Typography variant="h4">Device History</Typography>
+      </Stack>
+      
       {/* Device Header */}
       <Card>
         <CardContent>
@@ -134,7 +180,7 @@ export default function SensorHistoryPage() {
                 Type: {device.type} | Model: {device.model}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Gateway: {device.gateway.name || device.gateway.gateway_id} ({device.gateway.gateway_id})
+                Gateway: {device.gateway?.name || device.gateway?.gateway_id || 'Unknown'} ({device.gateway?.gateway_id || 'N/A'})
               </Typography>
             </Grid>
             <Grid item xs={12} md={4} sx={{ textAlign: { md: 'right' } }}>
@@ -156,9 +202,9 @@ export default function SensorHistoryPage() {
             <Grid container spacing={2}>
               <Grid item xs={12} md={8}>
                 <Stack spacing={1}>
-                  {Object.entries(latestReading.payload).map(([key, value]) => 
+                  {latestReading.payload ? Object.entries(latestReading.payload).map(([key, value]) => 
                     renderPayloadValue(key, value)
-                  ).filter(Boolean)}
+                  ).filter(Boolean) : <Typography variant="body2" color="text.secondary">No data available</Typography>}
                 </Stack>
               </Grid>
               <Grid item xs={12} md={4}>
@@ -181,7 +227,7 @@ export default function SensorHistoryPage() {
               <TableHead>
                 <TableRow>
                   <TableCell><strong>Timestamp</strong></TableCell>
-                  {latestReading && Object.keys(latestReading.payload)
+                  {latestReading && latestReading.payload && Object.keys(latestReading.payload)
                     .filter(key => key !== 'gateway_id')
                     .map(key => (
                       <TableCell key={key}>
@@ -199,7 +245,7 @@ export default function SensorHistoryPage() {
                         {new Date(record.timestamp).toLocaleString()}
                       </Typography>
                     </TableCell>
-                    {Object.entries(record.payload)
+                    {record.payload ? Object.entries(record.payload)
                       .filter(([key]) => key !== 'gateway_id')
                       .map(([key, value]) => (
                         <TableCell key={key}>
@@ -207,10 +253,10 @@ export default function SensorHistoryPage() {
                             ? (value ? '✅' : '❌')
                             : typeof value === 'number' 
                               ? value.toFixed(1)
-                              : value
+                              : value || 'N/A'
                           }
                         </TableCell>
-                      ))
+                      )) : <TableCell>No data</TableCell>
                     }
                   </TableRow>
                 ))}

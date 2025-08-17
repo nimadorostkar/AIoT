@@ -71,7 +71,19 @@ class DeviceViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        return Device.objects.filter(gateway__owner=self.request.user).order_by("id")
+        queryset = Device.objects.filter(gateway__owner=self.request.user).order_by("id")
+        
+        # Filter by gateway if specified
+        gateway_id = self.request.query_params.get('gateway', None)
+        if gateway_id:
+            try:
+                gateway_id_int = int(gateway_id)
+                queryset = queryset.filter(gateway_id=gateway_id_int)
+            except ValueError:
+                # If gateway_id is not a valid integer, return empty queryset
+                queryset = queryset.none()
+                
+        return queryset
 
     def create(self, request, *args, **kwargs):
         gateway_pk = request.data.get("gateway_pk")

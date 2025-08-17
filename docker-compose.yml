@@ -119,6 +119,12 @@ services:
         condition: service_healthy
       api:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-m", "celery", "-A", "core", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     networks:
       - iot_net

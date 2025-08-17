@@ -26,10 +26,14 @@ class MqttBridge:
     def start(self) -> None:
         try:
             print(f"MQTT Bridge: Connecting to {self.host}:{self.port}")
+            print(f"MQTT Bridge: Callback check - on_message: {self.client.on_message}")
             self.client.connect(self.host, self.port, 60)
-            if self._thread is None or not self._thread.is_alive():
-                self._thread = threading.Thread(target=self.client.loop_forever, daemon=True)
-                self._thread.start()
+            
+            # Use loop_start() instead of manual threading
+            print("MQTT Bridge: Starting client loop")
+            self.client.loop_start()
+            print("MQTT Bridge: Client loop started")
+            
             self._connected = True
             print("MQTT Bridge: Started successfully")
         except Exception as e:
@@ -47,24 +51,52 @@ class MqttBridge:
             pass
 
     def on_connect(self, client: mqtt.Client, userdata: Any, flags: Dict[str, Any], reason_code: int, properties=None):
-        print(f"MQTT Bridge: Connected with result code {reason_code}")
-        client.subscribe("devices/+/data")
-        client.subscribe("devices/+/heartbeat")
-        print("MQTT Bridge: Subscribed to devices/+/data and devices/+/heartbeat")
+        import sys
+        print(f"MQTT Bridge: Connected with result code {reason_code}", flush=True)
+        sys.stdout.flush()
+        
+        # Subscribe with more specific debugging
+        result1 = client.subscribe("devices/+/data")
+        result2 = client.subscribe("devices/+/heartbeat")
+        result3 = client.subscribe("debug/test")  # Add test subscription
+        print(f"MQTT Bridge: Subscribe results - data: {result1}, heartbeat: {result2}, debug: {result3}", flush=True)
+        sys.stdout.flush()
+        
+        print("MQTT Bridge: Subscribed to devices/+/data and devices/+/heartbeat and debug/test", flush=True)
+        sys.stdout.flush()
         self._connected = True
+        
+        # Test publish a message to verify bidirectional connection
+        test_msg = {"test": "bridge_connected", "timestamp": str(timezone.now())}
+        client.publish("debug/bridge_test", json.dumps(test_msg), qos=1)
+        print("MQTT Bridge: Published test message to debug/bridge_test", flush=True)
 
     def on_message(self, client: mqtt.Client, userdata: Any, msg: mqtt.MQTTMessage):
-        print(f"MQTT Bridge: Received message on {msg.topic}")
+        import sys
+        print(f"!!! MQTT CALLBACK TRIGGERED: {msg.topic} = {msg.payload.decode()}", flush=True)
+        sys.stdout.flush()
+        
+        # For debug topic, just log and return
+        if msg.topic.startswith("debug/"):
+            print(f"Debug message received: {msg.payload.decode()}", flush=True)
+            sys.stdout.flush()
+            return
+            
+        # Continue with device processing
+        print(f"MQTT Bridge: Processing device message on {msg.topic}", flush=True)
+        sys.stdout.flush()
         topic_parts = msg.topic.split("/")
         if len(topic_parts) < 3:
-            print(f"MQTT Bridge: Invalid topic format: {msg.topic}")
+            print(f"MQTT Bridge: Invalid topic format: {msg.topic}", flush=True)
+            sys.stdout.flush()
             return
         _, device_id, event_type = topic_parts[:3]
 
         try:
             payload = json.loads(msg.payload.decode("utf-8")) if msg.payload else {}
         except Exception as e:
-            print(f"MQTT Bridge: Failed to parse JSON: {e}")
+            print(f"MQTT Bridge: Failed to parse JSON: {e}", flush=True)
+            sys.stdout.flush()
             payload = {"raw": msg.payload.decode("utf-8", errors="ignore")}
 
         if event_type == "heartbeat":
@@ -139,9 +171,16 @@ bridge: 'MqttBridge | None' = None  # type: ignore
 
 def start_bridge_if_enabled():
     global bridge
+    print("MQTT Bridge: start_bridge_if_enabled called")
     if settings.MQTT.get("ENABLE", True):
+        print("MQTT Bridge: MQTT is enabled")
         if bridge is None:
+            print("MQTT Bridge: Creating new bridge instance")
             bridge = MqttBridge()
             bridge.start()
+        else:
+            print("MQTT Bridge: Bridge already exists")
+    else:
+        print("MQTT Bridge: MQTT is disabled")
 
 

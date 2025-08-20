@@ -1,0 +1,3 @@
+# Requirements for NodeMCU testing script
+paho-mqtt==1.6.1
+requests==2.31.0

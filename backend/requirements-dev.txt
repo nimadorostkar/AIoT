@@ -1,0 +1,82 @@
+# ================================================================
+# AIoT Smart System - Development Dependencies
+# ================================================================
+# 
+# This file contains development-only dependencies for the AIoT Smart System.
+# These are not needed in production but are essential for development,
+# testing, and code quality.
+#
+# To install: pip install -r requirements-dev.txt
+# ================================================================
+
+# Include production dependencies
+-r requirements.txt
+
+# ================================================================
+# Development Tools
+# ================================================================
+django-debug-toolbar==4.2.0        # Debug information in development
+django-extensions==3.2.3           # Additional management commands
+ipython==8.17.2                    # Enhanced Python shell
+
+# ================================================================
+# Testing Framework
+# ================================================================
+pytest==7.4.3                      # Modern testing framework
+pytest-django==4.7.0               # Django integration for pytest
+pytest-cov==4.1.0                  # Coverage reporting
+pytest-mock==3.12.0                # Mocking utilities
+factory-boy==3.3.0                 # Test data factories
+faker==20.1.0                      # Fake data generation
+
+# ================================================================
+# Code Quality & Formatting
+# ================================================================
+black==23.11.0                     # Code formatting
+flake8==6.1.0                      # Style guide enforcement
+isort==5.12.0                      # Import sorting
+mypy==1.7.1                        # Static type checking
+django-stubs==4.2.7                # Django type stubs
+pre-commit==3.6.0                  # Git hooks framework
+
+# ================================================================
+# Documentation
+# ================================================================
+sphinx==7.2.6                      # Documentation generator
+sphinx-rtd-theme==1.3.0            # Read the Docs theme
+sphinxcontrib-django==2.5          # Django integration for Sphinx
+
+# ================================================================
+# Database Tools
+# ================================================================
+django-migration-linter==5.0.0     # Migration quality checks
+django-query-counter==0.3.0        # Query performance monitoring
+
+# ================================================================
+# Development Server & Utilities
+# ================================================================
+django-livereload-server==0.4      # Auto-reload during development
+watchdog==3.0.0                    # File system event monitoring
+
+# ================================================================
+# Security Testing
+# ================================================================
+bandit==1.7.5                      # Security linter
+safety==2.3.5                      # Dependency vulnerability scanner
+
+# ================================================================
+# Performance Profiling
+# ================================================================
+django-silk==5.0.4                 # Request profiling and monitoring
+memory-profiler==0.61.0            # Memory usage profiling
+
+# ================================================================
+# API Testing
+# ================================================================
+httpx==0.25.2                      # Modern HTTP client for testing
+responses==0.24.1                  # Mock HTTP responses
+
+# ================================================================
+# Environment Management
+# ================================================================
+python-dotenv==1.0.0               # Load environment variables from .env

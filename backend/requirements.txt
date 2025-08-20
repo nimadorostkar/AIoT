@@ -1,14 +1,93 @@
-Django==4.2.13
-djangorestframework==3.15.1
-djangorestframework-simplejwt==5.3.1
-channels==4.0.0
-channels-redis==4.2.0
-psycopg2-binary==2.9.9
-django-environ==0.11.2
-django-cors-headers==4.4.0
-paho-mqtt==2.1.0
-drf-spectacular==0.27.2
-daphne==4.1.2
-whitenoise==6.7.0
-celery==5.3.4
+# ================================================================
+# AIoT Smart System - Python Dependencies
+# ================================================================
+# 
+# This file contains all Python dependencies for the AIoT Smart System backend.
+# Dependencies are organized by category and include specific version pins
+# for reproducible builds and security.
+#
+# To install: pip install -r requirements.txt
+# To upgrade: pip install -r requirements.txt --upgrade
+# ================================================================
+
+# ================================================================
+# Core Django Framework
+# ================================================================
+Django==4.2.13                     # Web framework
+django-environ==0.11.2             # Environment variable management
+django-cors-headers==4.4.0         # CORS handling for API
+whitenoise==6.7.0                  # Static file serving
+
+# ================================================================
+# Django REST Framework & API
+# ================================================================
+djangorestframework==3.15.1        # REST API framework
+djangorestframework-simplejwt==5.3.1  # JWT authentication
+drf-spectacular==0.27.2            # API documentation generation
+
+# ================================================================
+# Real-time Communication
+# ================================================================
+channels==4.0.0                    # WebSocket support
+channels-redis==4.2.0              # Redis channel layer
+daphne==4.1.2                      # ASGI server
+
+# ================================================================
+# IoT & MQTT Communication
+# ================================================================
+paho-mqtt==2.1.0                   # MQTT client library
+
+# ================================================================
+# Background Tasks
+# ================================================================
+celery==5.3.4                      # Distributed task queue
+redis==5.0.1                       # Redis client for Celery
+
+# ================================================================
+# Database Support
+# ================================================================
+psycopg2-binary==2.9.9             # PostgreSQL adapter
+
+# ================================================================
+# Development Dependencies (install with: pip install -r requirements-dev.txt)
+# ================================================================
+# Create requirements-dev.txt for development-only dependencies:
+# 
+# django-debug-toolbar==4.2.0      # Debug toolbar
+# django-extensions==3.2.3         # Additional management commands
+# factory-boy==3.3.0               # Test factories
+# pytest==7.4.3                    # Testing framework
+# pytest-django==4.7.0             # Django pytest integration
+# pytest-cov==4.1.0                # Coverage reporting
+# black==23.11.0                   # Code formatting
+# flake8==6.1.0                    # Code linting
+# mypy==1.7.1                      # Type checking
+# django-stubs==4.2.7              # Django type stubs
+# pre-commit==3.6.0                # Git hooks
+# 
+# ================================================================
+
+# ================================================================
+# Security & Production Dependencies
+# ================================================================
+# Add these for production deployment:
+#
+# gunicorn==21.2.0                 # WSGI server
+# sentry-sdk==1.38.0               # Error tracking
+# django-health-check==3.17.0     # Health check endpoints
+# django-ratelimit==4.1.0         # Rate limiting
+# cryptography==41.0.8            # Cryptographic recipes
+# 
+# ================================================================
+
+# ================================================================
+# Optional Analytics & Monitoring
+# ================================================================
+# Add these for monitoring and analytics:
+#
+# django-prometheus==2.3.1        # Prometheus metrics
+# django-silk==5.0.4              # Request profiling
+# structlog==23.2.0                # Structured logging
+# 
+# ================================================================
 

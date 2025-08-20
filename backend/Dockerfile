@@ -43,5 +43,5 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/admin/ || exit 1
 
 # Default command
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py makemigrations && python manage.py migrate && python manage.py ensure_superuser && daphne -b 0.0.0.0 -p 8000 core.asgi:application"]
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && python manage.py ensure_superuser && daphne -b 0.0.0.0 -p 8000 core.asgi:application"]
 

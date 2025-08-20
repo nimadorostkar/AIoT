@@ -72,7 +72,7 @@ class GatewayViewSet(viewsets.ModelViewSet):
         Returns a list of devices associated with the gateway.
         """
         try:
-        gateway = self.get_object()
+            gateway = self.get_object()
             devices = gateway.devices.all().select_related('model_definition').order_by("name", "device_id")
             serializer = DeviceSerializer(devices, many=True)
             
@@ -95,8 +95,8 @@ class GatewayViewSet(viewsets.ModelViewSet):
         all connected devices.
         """
         try:
-        gateway = self.get_object()
-        topic = f"gateways/{gateway.gateway_id}/discover"
+            gateway = self.get_object()
+            topic = f"gateways/{gateway.gateway_id}/discover"
             payload = {
                 "action": "discover",
                 "timestamp": timezone.now().isoformat(),
@@ -104,11 +104,11 @@ class GatewayViewSet(viewsets.ModelViewSet):
             }
             
             # Ensure MQTT bridge is running
-        if mqtt_worker.bridge is None:
-            mqtt_worker.start_bridge_if_enabled()
+            if mqtt_worker.bridge is None:
+                mqtt_worker.start_bridge_if_enabled()
             
-            if mqtt_worker.bridge and mqtt_worker.bridge._connected:
-            mqtt_worker.bridge.publish(topic, payload, qos=1)
+            if mqtt_worker.bridge:
+                mqtt_worker.bridge.publish(topic, payload, qos=1)
                 logger.info(f"Device discovery request sent to gateway {gateway.gateway_id}")
                 return Response({
                     "status": "sent",
@@ -138,10 +138,10 @@ class GatewayViewSet(viewsets.ModelViewSet):
         of an already owned gateway.
         """
         try:
-        gateway_id = request.data.get("gateway_id")
-        name = request.data.get("name", "")
+            gateway_id = request.data.get("gateway_id")
+            name = request.data.get("name", "")
             
-        if not gateway_id:
+            if not gateway_id:
                 return Response(
                     {"error": "gateway_id is required"}, 
                     status=status.HTTP_400_BAD_REQUEST
@@ -155,7 +155,7 @@ class GatewayViewSet(viewsets.ModelViewSet):
                 )
             
             with transaction.atomic():
-        gw, created = Gateway.objects.get_or_create(
+                gw, created = Gateway.objects.get_or_create(
                     gateway_id=gateway_id.strip(),
                     defaults={"owner": request.user, "name": name.strip()},
                 )
@@ -245,15 +245,15 @@ class DeviceViewSet(viewsets.ModelViewSet):
         Otherwise, a new device will be created.
         """
         try:
-        gateway_pk = request.data.get("gateway_pk")
-        gateway_id = request.data.get("gateway_id")
-        device_id = request.data.get("device_id")
+            gateway_pk = request.data.get("gateway_pk")
+            gateway_id = request.data.get("gateway_id")
+            device_id = request.data.get("device_id")
             device_type = request.data.get("type", Device.DEVICE_TYPE_SENSOR)
-        name = request.data.get("name", "")
-        model = request.data.get("model", "")
+            name = request.data.get("name", "")
+            model = request.data.get("model", "")
 
             # Validate required fields
-        if not device_id:
+            if not device_id:
                 return Response(
                     {"error": "device_id is required"}, 
                     status=status.HTTP_400_BAD_REQUEST
@@ -275,27 +275,27 @@ class DeviceViewSet(viewsets.ModelViewSet):
 
             # Find gateway
             gateway: Optional[Gateway] = None
-        if gateway_pk:
+            if gateway_pk:
                 try:
                     gateway = Gateway.objects.get(id=int(gateway_pk), owner=request.user)
                 except (Gateway.DoesNotExist, ValueError):
                     pass
                     
-        if not gateway and gateway_id:
+            if not gateway and gateway_id:
                 try:
                     gateway = Gateway.objects.get(gateway_id=gateway_id, owner=request.user)
                 except Gateway.DoesNotExist:
                     pass
                     
-        if not gateway:
+            if not gateway:
                 return Response(
                     {"error": "Gateway not found or not owned by user"}, 
                     status=status.HTTP_404_NOT_FOUND
                 )
 
             with transaction.atomic():
-        device, created = Device.objects.get_or_create(
-            gateway=gateway,
+                device, created = Device.objects.get_or_create(
+                    gateway=gateway,
                     device_id=device_id.strip(),
                     defaults={
                         "type": device_type, 
@@ -304,19 +304,19 @@ class DeviceViewSet(viewsets.ModelViewSet):
                     },
                 )
                 
-        if not created:
-            # Update basic fields if provided
-            updated = False
+                if not created:
+                    # Update basic fields if provided
+                    updated = False
                     if name.strip() and device.name != name.strip():
                         device.name = name.strip()
                         updated = True
                     if model.strip() and device.model != model.strip():
                         device.model = model.strip()
                         updated = True
-            if device_type and device.type != device_type:
+                    if device_type and device.type != device_type:
                         device.type = device_type
                         updated = True
-            if updated:
+                    if updated:
                         device.save(update_fields=['name', 'model', 'type', 'updated_at'])
                         logger.info(f"Updated device {device.full_device_id} for user {request.user.id}")
                 else:
@@ -360,12 +360,12 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 return Response(validation_error, status=status.HTTP_400_BAD_REQUEST)
             
             # Build enhanced payload with metadata
-        enhanced_payload = {
-            **payload,
-            'device_id': device.device_id,
-            'device_type': device.type,
-            'gateway_id': device.gateway.gateway_id,
-            'timestamp': timezone.now().isoformat(),
+            enhanced_payload = {
+                **payload,
+                'device_id': device.device_id,
+                'device_type': device.type,
+                'gateway_id': device.gateway.gateway_id,
+                'timestamp': timezone.now().isoformat(),
                 'command_id': f"cmd_{device.device_id}_{int(timezone.now().timestamp())}",
                 'user_id': request.user.id
             }
@@ -432,7 +432,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
             if mqtt_worker.bridge is None:
                 mqtt_worker.start_bridge_if_enabled()
             
-            if mqtt_worker.bridge and mqtt_worker.bridge._connected:
+            if mqtt_worker.bridge:
                 mqtt_worker.bridge.publish(topic, payload, qos=2)
                 return True
             else:
@@ -449,10 +449,10 @@ class DeviceViewSet(viewsets.ModelViewSet):
         Link a device to a model definition for validation and schema enforcement.
         """
         try:
-        device_id = request.data.get("device_id")
-        model_id = request.data.get("model_id")
+            device_id = request.data.get("device_id")
+            model_id = request.data.get("model_id")
             
-        if not device_id or not model_id:
+            if not device_id or not model_id:
                 return Response(
                     {"error": "device_id and model_id are required"}, 
                     status=status.HTTP_400_BAD_REQUEST
@@ -480,11 +480,11 @@ class DeviceViewSet(viewsets.ModelViewSet):
                 )
             
             # Link device to model
-        device.model_definition = model_def
+            device.model_definition = model_def
             device.save(update_fields=["model_definition", "updated_at"])
             
             logger.info(f"Linked device {device.full_device_id} to model {model_id} by user {request.user.id}")
-        return Response(DeviceSerializer(device).data)
+            return Response(DeviceSerializer(device).data)
 
         except Exception as e:
             logger.error(f"Error linking device to model: {str(e)}")
@@ -557,7 +557,7 @@ class TelemetryViewSet(viewsets.ReadOnlyModelViewSet):
             try:
                 limit_num = int(limit)
                 if limit_num > 0:
-                queryset = queryset[:limit_num]
+                    queryset = queryset[:limit_num]
             except ValueError:
                 logger.warning(f"Invalid limit filter: {limit}")
                 

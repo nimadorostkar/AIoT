@@ -51,6 +51,11 @@ export default function ControlPage() {
   }, [])
 
   useEffect(() => {
+    if (!Array.isArray(devices)) {
+      setControllableDevices([])
+      return
+    }
+    
     if (selectedGateway) {
       const gatewayDevices = devices.filter(d => d.gateway.id === selectedGateway)
       const controllable = gatewayDevices.filter(d => 
@@ -68,9 +73,10 @@ export default function ControlPage() {
   const loadGateways = async () => {
     try {
       const response = await api.get('/devices/gateways/')
-      setGateways(response.data)
+      setGateways(response.data || [])
     } catch (error) {
       console.error('Error loading gateways:', error)
+      setGateways([]) // Set empty array on error
     }
   }
 
@@ -78,9 +84,10 @@ export default function ControlPage() {
     setLoading(true)
     try {
       const response = await api.get('/devices/devices/')
-      setDevices(response.data)
+      setDevices(response.data || [])
     } catch (error) {
       console.error('Error loading devices:', error)
+      setDevices([]) // Ensure devices is always an array
     } finally {
       setLoading(false)
     }
@@ -138,7 +145,7 @@ export default function ControlPage() {
               label="Select Gateway"
             >
               <MenuItem value="">All Gateways</MenuItem>
-              {gateways.map(gateway => (
+              {Array.isArray(gateways) && gateways.map(gateway => (
                 <MenuItem key={gateway.id} value={gateway.id}>
                   {gateway.name || gateway.gateway_id}
                 </MenuItem>

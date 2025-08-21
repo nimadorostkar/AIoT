@@ -48,6 +48,11 @@ export default function VideoPage() {
   }, [])
 
   useEffect(() => {
+    if (!Array.isArray(devices)) {
+      setCameras([])
+      return
+    }
+    
     if (selectedGateway) {
       const gatewayDevices = devices.filter(d => d.gateway.id === selectedGateway)
       const cameraDevices = gatewayDevices.filter(d => d.type === 'camera')
@@ -61,9 +66,10 @@ export default function VideoPage() {
   const loadGateways = async () => {
     try {
       const response = await api.get('/devices/gateways/')
-      setGateways(response.data)
+      setGateways(response.data || [])
     } catch (error) {
       console.error('Error loading gateways:', error)
+      setGateways([]) // Set empty array on error
     }
   }
 
@@ -71,9 +77,10 @@ export default function VideoPage() {
     setLoading(true)
     try {
       const response = await api.get('/devices/devices/')
-      setDevices(response.data)
+      setDevices(response.data || [])
     } catch (error) {
       console.error('Error loading devices:', error)
+      setDevices([]) // Ensure devices is always an array
     } finally {
       setLoading(false)
     }
@@ -104,7 +111,7 @@ export default function VideoPage() {
               label="Select Gateway"
             >
               <MenuItem value="">All Gateways</MenuItem>
-              {gateways.map(gateway => (
+              {Array.isArray(gateways) && gateways.map(gateway => (
                 <MenuItem key={gateway.id} value={gateway.id}>
                   {gateway.name || gateway.gateway_id}
                 </MenuItem>

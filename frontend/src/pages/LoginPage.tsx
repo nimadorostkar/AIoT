@@ -4,7 +4,11 @@ import { apiBase } from '../api/client'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-export default function LoginPage() {
+interface LoginPageProps {
+  onLoginSuccess?: () => void
+}
+
+export default function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [username, setUsername] = useState('admin')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
@@ -16,6 +20,12 @@ export default function LoginPage() {
       const { data } = await axios.post(`${apiBase}/api/token/`, { username, password })
       localStorage.setItem('access', data.access)
       localStorage.setItem('refresh', data.refresh)
+      
+      // Call the callback to update auth state
+      if (onLoginSuccess) {
+        onLoginSuccess()
+      }
+      
       navigate('/')
     } catch (e: any) {
       setError(e?.response?.data?.detail || 'Login failed')

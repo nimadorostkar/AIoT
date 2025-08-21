@@ -33,8 +33,8 @@ def iot_dashboard(request):
     
     # Gateway with device counts
     gateways_with_counts = Gateway.objects.annotate(
-        device_count=Count('devices')
-    ).order_by('-device_count')
+        devices_count=Count('devices')
+    ).order_by('-devices_count')
     
     context = {
         'title': 'IoT Dashboard',

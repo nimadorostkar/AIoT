@@ -63,6 +63,7 @@ export default function DevicesPage() {
         setLatestTelemetry(telemetryByDevice)
       } catch (error) {
         console.error('Error loading devices:', error)
+        setDevices([]) // Ensure devices is always an array
         setError('Failed to load devices. Please try refreshing the page.')
       } finally {
         setLoading(false)
@@ -118,7 +119,7 @@ export default function DevicesPage() {
         }}>Add Device</Button>
       </Stack>
       <Grid container spacing={2}>
-        {devices.map(d => {
+        {Array.isArray(devices) && devices.map(d => {
           const telemetry = latestTelemetry[d.id]
           return (
             <Grid key={d.id} item xs={12} md={6} lg={4}>

@@ -16,15 +16,26 @@ export default function OverviewPage() {
   const [selectedGateway, setSelectedGateway] = useState<Gateway | null>(null)
   const [gatewayDevices, setGatewayDevices] = useState<Device[]>([])
   const [telemetryData, setTelemetryData] = useState<Telemetry[]>([])
+  const [loading, setLoading] = useState(true)
   const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
   const wsBase = import.meta.env.VITE_WS_BASE || 'ws://localhost:8000'
 
   useEffect(() => {
     const access = localStorage.getItem('access')
-    if (!access) return
+    if (!access) {
+      setLoading(false)
+      return
+    }
+    
     api.get(`/devices/gateways/`)
-      .then(res => setGateways(res.data))
+      .then(res => {
+        setGateways(res.data || [])
+        setLoading(false)
+      })
       .catch(err => {
+        console.error('Error loading gateways:', err)
+        setGateways([]) // Set empty array on error
+        setLoading(false)
         if (err.response?.status === 401) {
           localStorage.removeItem('access')
           window.location.href = '/login'
@@ -81,8 +92,12 @@ export default function OverviewPage() {
         }}>Discover Devices</Button>
       </Stack>
       <Typography variant="subtitle2" color="text.secondary">Last event: {lastEvent || '—'}</Typography>
-      <Grid container spacing={2}>
-        {gateways.map(g => (
+      
+      {loading ? (
+        <Typography>Loading gateways...</Typography>
+      ) : (
+        <Grid container spacing={2}>
+          {Array.isArray(gateways) && gateways.map(g => (
           <Grid key={g.id} item xs={12} md={6} lg={4}>
             <Card sx={{ cursor: 'pointer' }} onClick={() => {
               // Navigate to gateway details (we'll implement this)
@@ -110,8 +125,9 @@ export default function OverviewPage() {
               </CardContent>
             </Card>
           </Grid>
-        ))}
-      </Grid>
+          ))}
+        </Grid>
+      )}
 
       {/* Gateway Details Modal */}
       <Dialog open={!!selectedGateway} onClose={() => setSelectedGateway(null)} maxWidth="md" fullWidth>

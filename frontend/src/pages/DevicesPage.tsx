@@ -45,14 +45,14 @@ export default function DevicesPage() {
         
         // Load devices
         const devicesResponse = await api.get(`/devices/devices/`)
-        setDevices(devicesResponse.data || [])
+        setDevices(devicesResponse.data.results || [])
         
         // Load latest telemetry for each device
         const telemetryResponse = await api.get(`/devices/telemetry/`)
         const telemetryByDevice: { [deviceId: number]: Telemetry } = {}
         
-        if (telemetryResponse.data && Array.isArray(telemetryResponse.data)) {
-          telemetryResponse.data.forEach((item: Telemetry) => {
+        if (telemetryResponse.data.results && Array.isArray(telemetryResponse.data.results)) {
+          telemetryResponse.data.results.forEach((item: Telemetry) => {
             if (item && item.device && (!telemetryByDevice[item.device] || 
                 new Date(item.timestamp) > new Date(telemetryByDevice[item.device].timestamp))) {
               telemetryByDevice[item.device] = item

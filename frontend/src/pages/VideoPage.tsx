@@ -66,7 +66,7 @@ export default function VideoPage() {
   const loadGateways = async () => {
     try {
       const response = await api.get('/devices/gateways/')
-      setGateways(response.data || [])
+      setGateways(response.data.results || [])
     } catch (error) {
       console.error('Error loading gateways:', error)
       setGateways([]) // Set empty array on error
@@ -77,7 +77,7 @@ export default function VideoPage() {
     setLoading(true)
     try {
       const response = await api.get('/devices/devices/')
-      setDevices(response.data || [])
+      setDevices(response.data.results || [])
     } catch (error) {
       console.error('Error loading devices:', error)
       setDevices([]) // Ensure devices is always an array

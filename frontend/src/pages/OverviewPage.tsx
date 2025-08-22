@@ -1,4 +1,4 @@
-import { Button, Card, CardContent, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, Chip } from '@mui/material'
+import { Button, Card, CardContent, Stack, TextField, Typography, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText, Chip, Alert } from '@mui/material'
 import Grid from '@mui/material/Grid'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
@@ -17,24 +17,28 @@ export default function OverviewPage() {
   const [gatewayDevices, setGatewayDevices] = useState<Device[]>([])
   const [telemetryData, setTelemetryData] = useState<Telemetry[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000'
   const wsBase = import.meta.env.VITE_WS_BASE || 'ws://localhost:8000'
 
   useEffect(() => {
     const access = localStorage.getItem('access')
     if (!access) {
+      setError('Please login to view gateways')
       setLoading(false)
       return
     }
     
     api.get(`/devices/gateways/`)
       .then(res => {
-        setGateways(res.data || [])
+        setGateways(res.data.results || [])
+        setError(null)
         setLoading(false)
       })
       .catch(err => {
         console.error('Error loading gateways:', err)
         setGateways([]) // Set empty array on error
+        setError(err.message || 'Failed to load gateways')
         setLoading(false)
         if (err.response?.status === 401) {
           localStorage.removeItem('access')
@@ -61,12 +65,12 @@ export default function OverviewPage() {
     
     // Load devices for this gateway
     api.get(`/devices/devices/?gateway=${selectedGateway.id}`)
-      .then(res => setGatewayDevices(res.data))
+      .then(res => setGatewayDevices(res.data.results || []))
       .catch(() => setGatewayDevices([]))
     
     // Load recent telemetry
     api.get(`/devices/telemetry/?limit=10`)
-      .then(res => setTelemetryData(res.data))
+      .then(res => setTelemetryData(res.data.results || []))
       .catch(() => setTelemetryData([]))
   }, [selectedGateway])
 
@@ -81,7 +85,7 @@ export default function OverviewPage() {
           if (!access || !gatewayId) return
           await api.post(`/devices/gateways/claim/`, { gateway_id: gatewayId, name: gatewayName })
           const { data } = await api.get(`/devices/gateways/`)
-          setGateways(data)
+          setGateways(data.results || [])
           setGatewayId(''); setGatewayName('')
         }}>Add Gateway</Button>
         <Button variant="outlined" onClick={async () => {
@@ -92,6 +96,12 @@ export default function OverviewPage() {
         }}>Discover Devices</Button>
       </Stack>
       <Typography variant="subtitle2" color="text.secondary">Last event: {lastEvent || '—'}</Typography>
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       
       {loading ? (
         <Typography>Loading gateways...</Typography>

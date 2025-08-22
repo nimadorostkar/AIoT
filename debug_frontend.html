@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Frontend API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+        .error { background: #ffe6e6; color: red; }
+        .success { background: #e6ffe6; color: green; }
+        button { padding: 10px 15px; margin: 5px; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>AIoT Frontend Debug Tool</h1>
+    
+    <div class="section">
+        <h2>1. Login Test</h2>
+        <input type="text" id="username" placeholder="Username" value="admin">
+        <input type="password" id="password" placeholder="Password" value="admin123">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="loginResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. Token Test</h2>
+        <input type="text" id="token" placeholder="Token" style="width: 400px;">
+        <button onclick="testToken()">Test Token</button>
+        <div id="tokenResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Gateways API Test</h2>
+        <button onclick="testGateways()">Test Gateways</button>
+        <div id="gatewaysResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Devices API Test</h2>
+        <button onclick="testDevices()">Test Devices</button>
+        <div id="devicesResult" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. Browser Storage</h2>
+        <button onclick="checkStorage()">Check Storage</button>
+        <button onclick="clearStorage()">Clear Storage</button>
+        <div id="storageResult" class="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = isError ? 'result error' : 'result success';
+        }
+
+        async function testLogin() {
+            try {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                const response = await fetch(`${API_BASE}/api/token/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('access', data.access);
+                    localStorage.setItem('refresh', data.refresh);
+                    document.getElementById('token').value = data.access;
+                    log('loginResult', `✅ Login successful! Token stored.`);
+                } else {
+                    const error = await response.text();
+                    log('loginResult', `❌ Login failed: ${error}`, true);
+                }
+            } catch (error) {
+                log('loginResult', `❌ Login error: ${error.message}`, true);
+            }
+        }
+
+        async function testToken() {
+            try {
+                const token = document.getElementById('token').value || localStorage.getItem('access');
+                if (!token) {
+                    log('tokenResult', '❌ No token provided', true);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/api/devices/gateways/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    log('tokenResult', `✅ Token is valid! Status: ${response.status}`);
+                } else {
+                    log('tokenResult', `❌ Token invalid! Status: ${response.status}`, true);
+                }
+            } catch (error) {
+                log('tokenResult', `❌ Token test error: ${error.message}`, true);
+            }
+        }
+
+        async function testGateways() {
+            try {
+                const token = localStorage.getItem('access');
+                if (!token) {
+                    log('gatewaysResult', '❌ No access token found. Please login first.', true);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/api/devices/gateways/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('gatewaysResult', `✅ Gateways loaded: ${data.count} total<br><pre>${JSON.stringify(data, null, 2)}</pre>`);
+                } else {
+                    const error = await response.text();
+                    log('gatewaysResult', `❌ Gateways failed: ${response.status} - ${error}`, true);
+                }
+            } catch (error) {
+                log('gatewaysResult', `❌ Gateways error: ${error.message}`, true);
+            }
+        }
+
+        async function testDevices() {
+            try {
+                const token = localStorage.getItem('access');
+                if (!token) {
+                    log('devicesResult', '❌ No access token found. Please login first.', true);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/api/devices/devices/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('devicesResult', `✅ Devices loaded: ${data.count} total<br><pre>${JSON.stringify(data, null, 2)}</pre>`);
+                } else {
+                    const error = await response.text();
+                    log('devicesResult', `❌ Devices failed: ${response.status} - ${error}`, true);
+                }
+            } catch (error) {
+                log('devicesResult', `❌ Devices error: ${error.message}`, true);
+            }
+        }
+
+        function checkStorage() {
+            const access = localStorage.getItem('access');
+            const refresh = localStorage.getItem('refresh');
+            
+            let message = '<strong>LocalStorage Contents:</strong><br>';
+            message += `Access Token: ${access ? '✅ Present' : '❌ Missing'}<br>`;
+            message += `Refresh Token: ${refresh ? '✅ Present' : '❌ Missing'}<br>`;
+            
+            if (access) {
+                try {
+                    const payload = JSON.parse(atob(access.split('.')[1]));
+                    const exp = new Date(payload.exp * 1000);
+                    const now = new Date();
+                    message += `Token expires: ${exp.toLocaleString()}<br>`;
+                    message += `Token valid: ${exp > now ? '✅ Yes' : '❌ Expired'}<br>`;
+                } catch (e) {
+                    message += `Token format: ❌ Invalid<br>`;
+                }
+            }
+            
+            log('storageResult', message);
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('access');
+            localStorage.removeItem('refresh');
+            log('storageResult', '✅ Storage cleared');
+        }
+
+        // Auto-check storage on load
+        window.onload = () => {
+            checkStorage();
+        };
+    </script>
+</body>
+</html>

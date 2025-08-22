@@ -10,7 +10,7 @@ const char* ssid = "Nima";
 const char* password = "1234nima!!";
 
 // تنظیمات MQTT - باید با سرور AIoT شما مطابقت داشته باشد
-const char* mqtt_server = "192.168.1.37";  // آدرس IP سرور شما
+const char* mqtt_server = "192.168.1.38";  // آدرس IP سرور شما
 const int mqtt_port = 1883;
 const char* mqtt_client_id = "NodeMCU-Gateway-001";
 
